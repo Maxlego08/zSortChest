@@ -36,11 +36,11 @@ public class Config implements Savable {
 	}
 
 	public void save(Persist persist) {
-		persist.save(getInstance());
+
 	}
 
 	public void load(Persist persist) {
-		persist.loadOrSaveDefault(getInstance(), Config.class);
+
 	}
 
 }

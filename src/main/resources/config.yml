@@ -1,5 +1,11 @@
+debug: false
+
+debug-time: false
+
 item:
   material: BARREL
   name: "&fChest Sorter"
   lore:
     - "&8Connects multiple chests to sort them quickly"
+
+max-distance: 8

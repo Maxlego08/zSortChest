@@ -28,7 +28,6 @@ public class SortPlugin extends ZPlugin {
         this.addListener(this.sortManager);
 
         this.saveDefaultConfig();
-        this.addSave(Config.getInstance());
         this.addSave(new MessageLoader(this));
 
         this.loadFiles();

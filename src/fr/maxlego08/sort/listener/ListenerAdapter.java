@@ -18,6 +18,7 @@ import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
@@ -27,6 +28,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 
 @SuppressWarnings("deprecation")
 public abstract class ListenerAdapter extends ZUtils {
@@ -86,20 +89,24 @@ public abstract class ListenerAdapter extends ZUtils {
 			LivingEntity entity) {
 	}
 
-	protected void onPlayerDamagaByPlayer(EntityDamageByEntityEvent event, DamageCause cause, double damage,
-			Player damager, Player entity) {
+	protected void onPlayerDamageByPlayer(EntityDamageByEntityEvent event, DamageCause cause, double damage,
+										  Player damager, Player entity) {
 	}
 
-	protected void onPlayerDamagaByArrow(EntityDamageByEntityEvent event, DamageCause cause, double damage,
-			Projectile damager, Player entity) {
+	protected void onPlayerDamageByArrow(EntityDamageByEntityEvent event, DamageCause cause, double damage,
+										 Projectile damager, Player entity) {
 	}
 
-	protected void onItemisOnGround(PlayerDropItemEvent event, Player player, Item item, Location location) {
+	protected void onItemIsOnGround(PlayerDropItemEvent event, Player player, Item item, Location location) {
 	}
 
 	protected void onItemMove(PlayerDropItemEvent event, Player player, Item item, Location location, Block block) {
 	}
 
 	protected void onPlayerWalk(PlayerMoveEvent event, Player player, int i) {
+	}
+
+	protected void onInventoryMove(InventoryMoveItemEvent event, Inventory destination, ItemStack item, Inventory source, Inventory initiator) {
+
 	}
 }

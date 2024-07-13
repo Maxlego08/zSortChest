@@ -53,6 +53,8 @@ public enum Message {
     LINK_START("§aYou must now left click on a chest to connect it."),
     LINK_SUCCESS("§aYou just connected a new chest."),
 
+    UNLINK_SUCCESS("§aYou just removed the box from the sorter."),
+
     ;
 
     private List<String> messages;

@@ -1,6 +1,7 @@
 package fr.maxlego08.sort;
 
 import fr.maxlego08.sort.listener.ListenerAdapter;
+import fr.maxlego08.sort.save.Config;
 import fr.maxlego08.sort.zcore.enums.Message;
 import fr.maxlego08.sort.zcore.utils.loader.ItemStackLoader;
 import fr.maxlego08.sort.zcore.utils.loader.Loader;
@@ -10,6 +11,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Chest;
 import org.bukkit.block.Container;
 import org.bukkit.block.DoubleChest;
+import org.bukkit.block.Hopper;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -17,9 +19,11 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.DoubleChestInventory;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -46,6 +50,7 @@ public class SortManager extends ListenerAdapter {
     private final NamespacedKey keyChestLink;
     private final Map<Player, Block> linkChests = new HashMap<>();
     private ItemStack sortItemStack;
+    private double maxDistance = 8;
 
     public SortManager(SortPlugin plugin) {
         this.plugin = plugin;
@@ -65,6 +70,10 @@ public class SortManager extends ListenerAdapter {
         PersistentDataContainer persistentDataContainer = itemMeta.getPersistentDataContainer();
         persistentDataContainer.set(this.itemStackKey, PersistentDataType.BOOLEAN, true);
         this.sortItemStack.setItemMeta(itemMeta);
+
+        this.maxDistance = configuration.getDouble("max-distance", 8.0);
+        Config.enableDebug = configuration.getBoolean("debug", false);
+        Config.enableDebugTime = configuration.getBoolean("debug-time", false);
     }
 
     public void giveItemStack(CommandSender sender, Player player) {
@@ -121,8 +130,35 @@ public class SortManager extends ListenerAdapter {
                     return;
                 }
 
+                var locations = getLinkedChests(block);
+                removeLinkChests(locations);
+
                 block.getWorld().dropItemNaturally(block.getLocation(), this.sortItemStack.clone());
                 event.setDropItems(false);
+
+            } else if (persistentDataContainer.has(this.keyChestLink)) {
+
+                Location location = changeStringLocationToLocation(persistentDataContainer.get(this.keyChestLink, PersistentDataType.STRING));
+                Block sortBlock = location.getBlock();
+
+                List<Location> locations = getLinkedChests(sortBlock);
+                locations.removeIf(currentLocation -> same(currentLocation, block.getLocation()));
+
+                saveLinkedChests(sortBlock, locations);
+                message(player, Message.UNLINK_SUCCESS);
+            }
+        }
+    }
+
+    private void removeLinkChests(List<Location> locations) {
+        for (Location location : locations) {
+            Block block = location.getBlock();
+            if (block instanceof Container container) {
+                PersistentDataContainer persistentDataContainer = container.getPersistentDataContainer();
+                if (persistentDataContainer.has(this.keyChestLink)) {
+                    persistentDataContainer.remove(this.keyChests);
+                    container.update();
+                }
             }
         }
     }
@@ -131,7 +167,9 @@ public class SortManager extends ListenerAdapter {
     protected void onInteract(PlayerInteractEvent event, Player player) {
         Block block = event.getClickedBlock();
 
-        if (event.getAction() == Action.RIGHT_CLICK_BLOCK && player.isSneaking() && block != null) {
+        if (event.getHand() == EquipmentSlot.OFF_HAND) return;
+
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK && player.isSneaking() && block != null && player.getInventory().getItemInMainHand().getType().isAir()) {
             handleRightClick(event, player, block);
         } else if (event.getAction() == Action.LEFT_CLICK_BLOCK && block != null && this.linkChests.containsKey(player)) {
             handleLeftClick(event, player, block);
@@ -162,27 +200,30 @@ public class SortManager extends ListenerAdapter {
         Block sortBlock = this.linkChests.get(player);
         var state = block.getState();
 
-        if (state instanceof Container container && sortBlock != null) {
+        if (state instanceof Container container && sortBlock != null && !(state instanceof Hopper)) {
 
             event.setCancelled(true);
+            this.linkChests.remove(player);
 
             PersistentDataContainer persistentDataContainer = container.getPersistentDataContainer();
             if (persistentDataContainer.has(this.keyBlockOwner)) {
-                this.linkChests.remove(player);
                 message(player, Message.LINK_ERROR_SORTER);
                 return;
             }
 
             List<Location> locations = getLinkedChests(sortBlock);
             if (isAlreadyLinked(locations, block)) {
-                this.linkChests.remove(player);
                 message(player, Message.LINK_ERROR_ALREADY);
                 return;
             }
 
             if (container instanceof Chest chest && isDoubleChestLinked(chest, locations)) {
-                this.linkChests.remove(player);
                 message(player, Message.LINK_ERROR_ALREADY);
+                return;
+            }
+
+            if (block.getLocation().distance(sortBlock.getLocation()) > this.maxDistance) {
+                message(player, Message.LINK_ERROR_DISTANCE);
                 return;
             }
 
@@ -363,7 +404,7 @@ public class SortManager extends ListenerAdapter {
 
         return Optional.empty();
     }
-    
+
     public boolean isInventoryFull(Container container) {
         for (ItemStack item : container.getInventory().getContents()) {
             if (item == null || item.getType().isAir()) {
@@ -374,5 +415,16 @@ public class SortManager extends ListenerAdapter {
             }
         }
         return true;
+    }
+
+    @Override
+    protected void onInventoryMove(InventoryMoveItemEvent event, Inventory destination, ItemStack item, Inventory source, Inventory initiator) {
+
+        if (destination.getHolder() instanceof Container container) {
+            PersistentDataContainer persistentDataContainer = container.getPersistentDataContainer();
+            if (persistentDataContainer.has(this.keyBlockOwner)) {
+                sortContents(container);
+            }
+        }
     }
 }
