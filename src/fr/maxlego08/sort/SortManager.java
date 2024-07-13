@@ -148,7 +148,7 @@ public class SortManager extends ListenerAdapter {
 
                 saveLinkedChests(sortBlock, locations);
                 updateInventoryName(container, locations.size());
-                
+
                 message(player, Message.UNLINK_SUCCESS);
             }
         }
