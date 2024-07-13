@@ -2,10 +2,15 @@ debug: false
 
 debug-time: false
 
+# Item that the player will receive in his inventory with the command /zsortchest give
 item:
-  material: BARREL
+  material: BARREL # To define the type of material that would be used as a block, you must put a container
   name: "&fChest Sorter"
   lore:
     - "&8Connects multiple chests to sort them quickly"
 
+# Maximum distance to place a chest, in block
 max-distance: 8
+
+# Inventory name, you can view the number of container connect with the %amount%
+inventory-name: "&fChest Sorter &8(&7%amount&8%)"

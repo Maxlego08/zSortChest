@@ -51,6 +51,7 @@ public class SortManager extends ListenerAdapter {
     private final Map<Player, Block> linkChests = new HashMap<>();
     private ItemStack sortItemStack;
     private double maxDistance = 8;
+    private String inventoryName = "&fChest Sorter &8(&7%amount&8%)";
 
     public SortManager(SortPlugin plugin) {
         this.plugin = plugin;
@@ -72,6 +73,7 @@ public class SortManager extends ListenerAdapter {
         this.sortItemStack.setItemMeta(itemMeta);
 
         this.maxDistance = configuration.getDouble("max-distance", 8.0);
+        this.inventoryName = configuration.getString("inventory-name", "&fChest Sorter &8(&7%amount&8%)");
         Config.enableDebug = configuration.getBoolean("debug", false);
         Config.enableDebugTime = configuration.getBoolean("debug-time", false);
     }
@@ -145,6 +147,8 @@ public class SortManager extends ListenerAdapter {
                 locations.removeIf(currentLocation -> same(currentLocation, block.getLocation()));
 
                 saveLinkedChests(sortBlock, locations);
+                updateInventoryName(container, locations.size());
+                
                 message(player, Message.UNLINK_SUCCESS);
             }
         }
@@ -231,6 +235,7 @@ public class SortManager extends ListenerAdapter {
 
             saveLinkedChests(sortBlock, locations);
             linkChestBlockToSorter(sortBlock, container);
+            updateInventoryName(container, locations.size());
 
             message(player, Message.LINK_SUCCESS);
         }
@@ -426,5 +431,10 @@ public class SortManager extends ListenerAdapter {
                 sortContents(container);
             }
         }
+    }
+
+    private void updateInventoryName(Container container, int amount) {
+        container.setCustomName(color(inventoryName.replace("%amount%", String.valueOf(amount))));
+        container.update();
     }
 }
