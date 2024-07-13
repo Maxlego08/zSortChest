@@ -51,7 +51,7 @@ public class SortManager extends ListenerAdapter {
     private final Map<Player, Block> linkChests = new HashMap<>();
     private ItemStack sortItemStack;
     private double maxDistance = 8;
-    private String inventoryName = "&fChest Sorter &8(&7%amount&8%)";
+    private String inventoryName = "&fChest Sorter &8(&7%amount%&8)";
 
     public SortManager(SortPlugin plugin) {
         this.plugin = plugin;
@@ -73,7 +73,7 @@ public class SortManager extends ListenerAdapter {
         this.sortItemStack.setItemMeta(itemMeta);
 
         this.maxDistance = configuration.getDouble("max-distance", 8.0);
-        this.inventoryName = configuration.getString("inventory-name", "&fChest Sorter &8(&7%amount&8%)");
+        this.inventoryName = configuration.getString("inventory-name", "&fChest Sorter &8(&7%amount%&8)");
         Config.enableDebug = configuration.getBoolean("debug", false);
         Config.enableDebugTime = configuration.getBoolean("debug-time", false);
     }
@@ -104,6 +104,8 @@ public class SortManager extends ListenerAdapter {
             persistentDataContainer.set(this.keyBlockOwner, PersistentDataType.STRING, player.getUniqueId().toString());
             persistentDataContainer.set(this.keyChests, PersistentDataType.STRING, "");
             container.update();
+
+            updateInventoryName(container, 0);
 
             message(player, Message.PLACE_SORT);
         }
@@ -147,7 +149,9 @@ public class SortManager extends ListenerAdapter {
                 locations.removeIf(currentLocation -> same(currentLocation, block.getLocation()));
 
                 saveLinkedChests(sortBlock, locations);
-                updateInventoryName(container, locations.size());
+                if (sortBlock.getState() instanceof Container sortContainer) {
+                    updateInventoryName(sortContainer, locations.size());
+                }
 
                 message(player, Message.UNLINK_SUCCESS);
             }
@@ -235,7 +239,9 @@ public class SortManager extends ListenerAdapter {
 
             saveLinkedChests(sortBlock, locations);
             linkChestBlockToSorter(sortBlock, container);
-            updateInventoryName(container, locations.size());
+            if (sortBlock.getState() instanceof Container sortContainer) {
+                updateInventoryName(sortContainer, locations.size());
+            }
 
             message(player, Message.LINK_SUCCESS);
         }
@@ -253,6 +259,7 @@ public class SortManager extends ListenerAdapter {
                 finalLinkChestBlockToSorter(sortBlock, rightSideChest);
             }
         } else {
+
             finalLinkChestBlockToSorter(sortBlock, container);
         }
     }
@@ -434,7 +441,7 @@ public class SortManager extends ListenerAdapter {
     }
 
     private void updateInventoryName(Container container, int amount) {
-        container.setCustomName(color(inventoryName.replace("%amount%", String.valueOf(amount))));
+        container.setCustomName(color(this.inventoryName.replace("%amount%", String.valueOf(amount))));
         container.update();
     }
 }

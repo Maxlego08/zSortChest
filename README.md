@@ -1,28 +1,11 @@
-# Template Plugin
+# zSortChest
 
-Here is a simple project for the quick creation of minecraft plugin.
-Works from version 1.8 to version 1.19+
+This plugin allows you to simply sort chests. No more hundreds of hopper that will lag your server. A single block
+allows you to connect all your chests and sort them automatically.
 
-Documentation: https://drawerPlugin.groupez.dev/
+## Commands
 
-# GroupeZ 
-
-https://groupez.dev is a marketplace that allows you to sell your plugins without any charge !
-
-## Features
-
-* Commands
-* TabCompleter
-* Inventories
-* Json file
-* Useful function (in the class ZUtils)
-* ItemBuilder
-* CooldownBuilder
-* TimerBuilder
-* Pagination
-* Inventory button
-* Custom Event
-* YML Loader (itemstack and button)
-* Scoreboard (https://github.com/MrMicky-FR/FastBoard)
-* Placeholder UTILS
+- ``/zsortchest`` - zsortchest.use - Show commands
+- ``/zsortchest reload`` - zsortchest.reload - Reload configurations files
+- ``/zsortchest give <player>`` - zsortchest.give - Give a chest sorter to a player
 

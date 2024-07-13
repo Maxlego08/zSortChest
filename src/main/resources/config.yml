@@ -13,4 +13,4 @@ item:
 max-distance: 8
 
 # Inventory name, you can view the number of container connect with the %amount%
-inventory-name: "&fChest Sorter &8(&7%amount&8%)"
+inventory-name: "&fChest Sorter &8(&7%amount%&8)"
