@@ -439,24 +439,35 @@ public abstract class VCommand extends Arguments {
      * @return the generated syntax.
      */
     private String generateDefaultSyntax(String syntax) {
-        boolean update = syntax.isEmpty();
 
-        StringBuilder syntaxBuilder = new StringBuilder();
-        if (update) {
-            appendRequiredArguments(syntaxBuilder);
-            appendOptionalArguments(syntaxBuilder);
-            syntax = syntaxBuilder.toString().trim();
+        String tmpString = subCommands.get(0);
+
+        boolean update = syntax.equals("");
+
+        if (requireArgs.size() != 0 && update) {
+            StringBuilder syntaxBuilder = new StringBuilder(syntax);
+            for (String requireArg : requireArgs) {
+                requireArg = "<" + requireArg + ">";
+                syntaxBuilder.append(" ").append(requireArg);
+            }
+            syntax = syntaxBuilder.toString();
+        }
+        if (optionalArgs.size() != 0 && update) {
+            StringBuilder syntaxBuilder = new StringBuilder(syntax);
+            for (String optionalArg : optionalArgs) {
+                optionalArg = "[<" + optionalArg + ">]";
+                syntaxBuilder.append(" ").append(optionalArg);
+            }
+            syntax = syntaxBuilder.toString();
         }
 
-        return parent == null ? "/" + subCommands.get(0) + " " + syntax : parent.generateDefaultSyntax(" " + subCommands.get(0) + syntax);
-    }
+        tmpString += syntax;
 
-    private void appendRequiredArguments(StringBuilder syntaxBuilder) {
-        requireArgs.forEach(arg -> syntaxBuilder.append(" <").append(arg).append(">"));
-    }
+        if (parent == null) {
+            return "/" + tmpString;
+        }
 
-    private void appendOptionalArguments(StringBuilder syntaxBuilder) {
-        optionalArgs.forEach(arg -> syntaxBuilder.append(" [<").append(arg).append(">"));
+        return parent.generateDefaultSyntax(" " + tmpString);
     }
 
     /**
@@ -495,8 +506,7 @@ public abstract class VCommand extends Arguments {
 
         if (defaultString != null) {
             for (VCommand subCommand : subVCommands) {
-                if (subCommand.getSubCommands().contains(defaultString.toLowerCase()))
-                    return CommandType.CONTINUE;
+                if (subCommand.getSubCommands().contains(defaultString.toLowerCase())) return CommandType.CONTINUE;
             }
         }
 
@@ -512,8 +522,7 @@ public abstract class VCommand extends Arguments {
         try {
             return perform(plugin);
         } catch (Exception e) {
-            if (Config.enableDebug)
-                e.printStackTrace();
+            if (Config.enableDebug) e.printStackTrace();
             return CommandType.SYNTAX_ERROR;
         }
     }
@@ -536,8 +545,7 @@ public abstract class VCommand extends Arguments {
             return false;
         }
         for (String command : this.subCommands) {
-            if (this.parent.getSubCommands().contains(command))
-                return true;
+            if (this.parent.getSubCommands().contains(command)) return true;
         }
         return false;
     }
@@ -549,8 +557,7 @@ public abstract class VCommand extends Arguments {
      */
     @Override
     public String toString() {
-        return "VCommand [permission=" + permission + ", subCommands=" + subCommands + ", consoleCanUse="
-                + consoleCanUse + ", description=" + description + "]";
+        return "VCommand [permission=" + permission + ", subCommands=" + subCommands + ", consoleCanUse=" + consoleCanUse + ", description=" + description + "]";
     }
 
     /**
@@ -622,9 +629,7 @@ public abstract class VCommand extends Arguments {
     protected List<String> generateList(List<String> defaultList, String startWith, Tab tab) {
         List<String> newList = new ArrayList<>();
         for (String str : defaultList) {
-            if (startWith.length() == 0
-                    || (tab.equals(Tab.START) ? str.toLowerCase().startsWith(startWith.toLowerCase())
-                    : str.toLowerCase().contains(startWith.toLowerCase()))) {
+            if (startWith.length() == 0 || (tab.equals(Tab.START) ? str.toLowerCase().startsWith(startWith.toLowerCase()) : str.toLowerCase().contains(startWith.toLowerCase()))) {
                 newList.add(str);
             }
         }
@@ -646,8 +651,7 @@ public abstract class VCommand extends Arguments {
     public void syntaxMessage() {
         this.subVCommands.forEach(command -> {
             if (command.getPermission() == null || hasPermission(sender, command.getPermission())) {
-                message(this.sender, Message.COMMAND_SYNTAXE_HELP, "%syntax%", command.getSyntax(), "%description%",
-                        command.getDescription());
+                message(this.sender, Message.COMMAND_SYNTAXE_HELP, "%syntax%", command.getSyntax(), "%description%", command.getDescription());
             }
         });
     }

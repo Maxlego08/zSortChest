@@ -66,7 +66,7 @@ public class AdapterListener extends ZUtils implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onClose(InventoryMoveItemEvent event) {
+    public void onMove(InventoryMoveItemEvent event) {
         this.plugin.getListenerAdapters().forEach(adapter -> adapter.onInventoryMove(event, event.getDestination(), event.getItem(), event.getSource(), event.getInitiator()));
     }
 }

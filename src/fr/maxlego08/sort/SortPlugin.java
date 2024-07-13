@@ -2,9 +2,9 @@ package fr.maxlego08.sort;
 
 import fr.maxlego08.sort.command.commands.CommandSortChest;
 import fr.maxlego08.sort.placeholder.LocalPlaceholder;
-import fr.maxlego08.sort.save.Config;
 import fr.maxlego08.sort.save.MessageLoader;
 import fr.maxlego08.sort.zcore.ZPlugin;
+import fr.maxlego08.sort.zcore.utils.plugins.Metrics;
 
 /**
  * System to create your plugins very simply Projet:
@@ -32,6 +32,8 @@ public class SortPlugin extends ZPlugin {
 
         this.loadFiles();
         this.sortManager.loadConfiguration();
+
+        new Metrics(this, 22632);
 
         this.postEnable();
     }
