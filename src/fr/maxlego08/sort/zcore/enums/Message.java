@@ -43,7 +43,15 @@ public enum Message {
 
     PLACE_SORT("§aYou just placed the chest sorter. §8(§7Shit right click to connect to a chest§8)"),
 
-    BREAK_ERROR("§cYou must be the player who placed the block to break it."),
+    BREAK_ERROR_OWNER("§cYou must be the player who placed the block to break it."),
+    BREAK_ERROR_EMPTY("§cThe sorter must be empty before it can be broken."),
+
+    LINK_ERROR_OWNER("§cThe sorter must be empty before it can be broken."),
+    LINK_ERROR_DISTANCE("§cThe chest is too far you can’t connect it."),
+    LINK_ERROR_ALREADY("§cThis chest is already connected, please repeat."),
+    LINK_ERROR_SORTER("§cYou cannot link a sorter to another sorter."),
+    LINK_START("§aYou must now left click on a chest to connect it."),
+    LINK_SUCCESS("§aYou just connected a new chest."),
 
     ;
 
@@ -67,11 +75,11 @@ public enum Message {
     /**
      * Constructs a new Message with the specified title, subtitle, and timings.
      *
-     * @param title     the title string.
-     * @param subTitle  the subtitle string.
-     * @param a         the start time in ticks.
-     * @param b         the display time in ticks.
-     * @param c         the end time in ticks.
+     * @param title    the title string.
+     * @param subTitle the subtitle string.
+     * @param a        the start time in ticks.
+     * @param b        the display time in ticks.
+     * @param c        the end time in ticks.
      */
     Message(String title, String subTitle, int a, int b, int c) {
         this.use = true;

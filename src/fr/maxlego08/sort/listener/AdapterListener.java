@@ -76,7 +76,7 @@ public class AdapterListener extends ZUtils implements Listener {
         this.plugin.getListenerAdapters().forEach(adapter -> adapter.onEntityDeath(event, event.getEntity()));
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
         this.plugin.getListenerAdapters().forEach(adapter -> adapter.onInteract(event, event.getPlayer()));
     }
@@ -97,10 +97,9 @@ public class AdapterListener extends ZUtils implements Listener {
                 .forEach(adapter -> adapter.onInventoryDrag(event, (Player) event.getWhoClicked()));
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onClose(InventoryCloseEvent event) {
-        this.plugin.getListenerAdapters()
-                .forEach(adapter -> adapter.onInventoryClose(event, (Player) event.getPlayer()));
+        this.plugin.getListenerAdapters().forEach(adapter -> adapter.onInventoryClose(event, (Player) event.getPlayer()));
     }
 
     @EventHandler

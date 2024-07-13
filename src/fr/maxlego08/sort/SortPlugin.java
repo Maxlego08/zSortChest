@@ -4,7 +4,6 @@ import fr.maxlego08.sort.command.commands.CommandSortChest;
 import fr.maxlego08.sort.placeholder.LocalPlaceholder;
 import fr.maxlego08.sort.save.Config;
 import fr.maxlego08.sort.save.MessageLoader;
-import fr.maxlego08.sort.save.SortStorage;
 import fr.maxlego08.sort.zcore.ZPlugin;
 
 /**
@@ -32,7 +31,6 @@ public class SortPlugin extends ZPlugin {
         this.addSave(Config.getInstance());
         this.addSave(new MessageLoader(this));
 
-        SortStorage.getInstance().load(this.getPersist());
         this.loadFiles();
         this.sortManager.loadConfiguration();
 
@@ -44,7 +42,6 @@ public class SortPlugin extends ZPlugin {
 
         this.preDisable();
 
-        SortStorage.getInstance().save(this.getPersist());
         this.saveFiles();
 
         this.postDisable();

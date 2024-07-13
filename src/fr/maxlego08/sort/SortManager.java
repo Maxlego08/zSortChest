@@ -4,32 +4,55 @@ import fr.maxlego08.sort.listener.ListenerAdapter;
 import fr.maxlego08.sort.zcore.enums.Message;
 import fr.maxlego08.sort.zcore.utils.loader.ItemStackLoader;
 import fr.maxlego08.sort.zcore.utils.loader.Loader;
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
+import org.bukkit.block.Chest;
 import org.bukkit.block.Container;
+import org.bukkit.block.DoubleChest;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.DoubleChestInventory;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class SortManager extends ListenerAdapter {
 
     private final SortPlugin plugin;
     private final NamespacedKey itemStackKey;
     private final NamespacedKey keyBlockOwner;
+    private final NamespacedKey keyChests;
+    private final NamespacedKey keyChestLink;
+    private final Map<Player, Block> linkChests = new HashMap<>();
     private ItemStack sortItemStack;
 
     public SortManager(SortPlugin plugin) {
         this.plugin = plugin;
         this.itemStackKey = new NamespacedKey(plugin, "sort");
         this.keyBlockOwner = new NamespacedKey(plugin, "owner");
+        this.keyChests = new NamespacedKey(plugin, "chests");
+        this.keyChestLink = new NamespacedKey(plugin, "linked-chest");
     }
 
     public void loadConfiguration() {
@@ -68,6 +91,8 @@ public class SortManager extends ListenerAdapter {
             PersistentDataContainer persistentDataContainer = container.getPersistentDataContainer();
             persistentDataContainer.set(this.itemStackKey, PersistentDataType.BOOLEAN, true);
             persistentDataContainer.set(this.keyBlockOwner, PersistentDataType.STRING, player.getUniqueId().toString());
+            persistentDataContainer.set(this.keyChests, PersistentDataType.STRING, "");
+            container.update();
 
             message(player, Message.PLACE_SORT);
         }
@@ -84,13 +109,270 @@ public class SortManager extends ListenerAdapter {
                 UUID ownerUUID = UUID.fromString(persistentDataContainer.get(this.keyBlockOwner, PersistentDataType.STRING));
 
                 if (!ownerUUID.equals(player.getUniqueId())) {
-                    message(player, Message.BREAK_ERROR);
+                    message(player, Message.BREAK_ERROR_OWNER);
                     event.setCancelled(true);
                     return;
                 }
 
-                System.out.println(block.getDrops());
+                Inventory inventory = container.getInventory();
+                if (!isEmpty(inventory)) {
+                    message(player, Message.BREAK_ERROR_EMPTY);
+                    event.setCancelled(true);
+                    return;
+                }
+
+                block.getWorld().dropItemNaturally(block.getLocation(), this.sortItemStack.clone());
+                event.setDropItems(false);
             }
         }
+    }
+
+    @Override
+    protected void onInteract(PlayerInteractEvent event, Player player) {
+        Block block = event.getClickedBlock();
+
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK && player.isSneaking() && block != null) {
+            handleRightClick(event, player, block);
+        } else if (event.getAction() == Action.LEFT_CLICK_BLOCK && block != null && this.linkChests.containsKey(player)) {
+            handleLeftClick(event, player, block);
+        }
+    }
+
+    private void handleRightClick(PlayerInteractEvent event, Player player, Block block) {
+        var state = block.getState();
+        if (state instanceof Container container) {
+            PersistentDataContainer persistentDataContainer = container.getPersistentDataContainer();
+            if (persistentDataContainer.has(this.keyBlockOwner)) {
+                UUID ownerUUID = UUID.fromString(persistentDataContainer.get(this.keyBlockOwner, PersistentDataType.STRING));
+
+                if (!ownerUUID.equals(player.getUniqueId())) {
+                    message(player, Message.LINK_ERROR_OWNER);
+                    event.setCancelled(true);
+                    return;
+                }
+
+                event.setCancelled(true);
+                this.linkChests.put(player, block);
+                message(player, Message.LINK_START);
+            }
+        }
+    }
+
+    private void handleLeftClick(PlayerInteractEvent event, Player player, Block block) {
+        Block sortBlock = this.linkChests.get(player);
+        var state = block.getState();
+
+        if (state instanceof Container container && sortBlock != null) {
+
+            event.setCancelled(true);
+
+            PersistentDataContainer persistentDataContainer = container.getPersistentDataContainer();
+            if (persistentDataContainer.has(this.keyBlockOwner)) {
+                this.linkChests.remove(player);
+                message(player, Message.LINK_ERROR_SORTER);
+                return;
+            }
+
+            List<Location> locations = getLinkedChests(sortBlock);
+            if (isAlreadyLinked(locations, block)) {
+                this.linkChests.remove(player);
+                message(player, Message.LINK_ERROR_ALREADY);
+                return;
+            }
+
+            if (container instanceof Chest chest && isDoubleChestLinked(chest, locations)) {
+                this.linkChests.remove(player);
+                message(player, Message.LINK_ERROR_ALREADY);
+                return;
+            }
+
+            locations.add(block.getLocation());
+
+            saveLinkedChests(sortBlock, locations);
+            linkChestBlockToSorter(sortBlock, container);
+
+            message(player, Message.LINK_SUCCESS);
+        }
+    }
+
+    private void linkChestBlockToSorter(Block sortBlock, Container container) {
+        if (container instanceof Chest chest && chest.getInventory() instanceof DoubleChestInventory doubleChestInventory) {
+            DoubleChest doubleChest = doubleChestInventory.getHolder();
+
+            if (doubleChest.getLeftSide() instanceof Chest leftSideChest) {
+                finalLinkChestBlockToSorter(sortBlock, leftSideChest);
+            }
+
+            if (doubleChest.getRightSide() instanceof Chest rightSideChest) {
+                finalLinkChestBlockToSorter(sortBlock, rightSideChest);
+            }
+        } else {
+            finalLinkChestBlockToSorter(sortBlock, container);
+        }
+    }
+
+    private void finalLinkChestBlockToSorter(Block sortBlock, Container container) {
+        PersistentDataContainer persistentDataContainer = container.getPersistentDataContainer();
+        persistentDataContainer.set(this.keyChestLink, PersistentDataType.STRING, changeLocationToString(sortBlock.getLocation()));
+        container.update();
+    }
+
+    private boolean isAlreadyLinked(List<Location> locations, Block block) {
+        return locations.contains(block.getLocation());
+    }
+
+    private boolean isDoubleChestLinked(Chest chest, List<Location> locations) {
+        if (chest.getInventory() instanceof DoubleChestInventory doubleChestInventory) {
+            DoubleChest doubleChest = doubleChestInventory.getHolder();
+
+            if (doubleChest.getLeftSide() instanceof Chest leftSideChest) {
+                return locations.contains(leftSideChest.getBlock().getLocation());
+            }
+
+            if (doubleChest.getRightSide() instanceof Chest rightSideChest) {
+                return locations.contains(rightSideChest.getBlock().getLocation());
+            }
+        }
+        return false;
+    }
+
+
+    private List<Location> getLinkedChests(Block block) {
+        var state = block.getState();
+        if (state instanceof Container container) {
+            PersistentDataContainer persistentDataContainer = container.getPersistentDataContainer();
+            if (persistentDataContainer.has(this.keyChests)) {
+
+                String value = persistentDataContainer.get(this.keyChests, PersistentDataType.STRING);
+                if (value == null || value.isEmpty()) return new ArrayList<>();
+
+                String[] values = value.split("\\|");
+                return Arrays.stream(values).map(this::changeStringLocationToLocation).filter(Objects::nonNull).collect(Collectors.toList());
+            }
+        }
+        return new ArrayList<>();
+    }
+
+    private void saveLinkedChests(Block block, List<Location> locations) {
+        var state = block.getState();
+        if (state instanceof Container container) {
+            PersistentDataContainer persistentDataContainer = container.getPersistentDataContainer();
+            if (persistentDataContainer.has(this.keyChests)) {
+
+                String value = locations.stream().map(this::changeLocationToString).collect(Collectors.joining("|"));
+
+                persistentDataContainer.set(this.keyChests, PersistentDataType.STRING, value);
+                container.update();
+            }
+        }
+    }
+
+    @Override
+    protected void onQuit(PlayerQuitEvent event, Player player) {
+        this.linkChests.remove(player);
+    }
+
+    private boolean isEmpty(Inventory inventory) {
+        int items = 0;
+        for (ItemStack itemStack : inventory.getContents()) {
+            if (itemStack != null && !itemStack.getType().isAir()) {
+                items++;
+            }
+        }
+        return items == 0;
+    }
+
+    private int findAmountItem(Container container) {
+        int items = 0;
+        for (ItemStack itemStack : container.getInventory().getContents()) {
+            if (itemStack != null && !itemStack.getType().isAir()) {
+                items++;
+            }
+        }
+        return items;
+    }
+
+    @Override
+    protected void onInventoryClose(InventoryCloseEvent event, Player player) {
+
+        var inventory = event.getInventory();
+        if (inventory.getHolder() instanceof Container container) {
+
+            PersistentDataContainer persistentDataContainer = container.getPersistentDataContainer();
+            if (persistentDataContainer.has(this.keyChests)) {
+                sortContents(container);
+            }
+        }
+    }
+
+    private void sortContents(Container container) {
+
+        Inventory inventory = container.getInventory();
+
+        if (isEmpty(inventory)) return;
+
+        for (ItemStack itemStack : inventory.getContents()) {
+            if (itemStack != null && !itemStack.getType().isAir()) {
+
+                List<Location> locations = this.getLinkedChests(container.getBlock());
+                if (locations.isEmpty()) return;
+
+                List<Container> possibleContainers = locations.stream().filter(Objects::nonNull) // We’ll make sure no rentals are zero
+                        .map(Location::getBlock)// We turn the location into a block
+                        .filter(block -> block.getState() instanceof Container) // Check that the block is a Container
+                        .map(block -> (Container) block.getState())// We turn the block into a Container
+                        .toList();
+
+                sortItemStack(inventory, possibleContainers, itemStack);
+            }
+        }
+    }
+
+    private void sortItemStack(Inventory inventory, List<Container> possibleContainers, ItemStack itemStack) {
+
+        Optional<Container> optional = findContainer(new ArrayList<>(possibleContainers), itemStack);
+        if (optional.isPresent()) {
+
+            Container container = optional.get();
+            Inventory containerInventory = container.getInventory();
+
+            Map<Integer, ItemStack> results = containerInventory.addItem(itemStack);
+
+            if (results.isEmpty()) {
+                inventory.remove(itemStack);
+            }
+        }
+    }
+
+    private Optional<Container> findContainer(List<Container> possibleContainer, ItemStack itemStack) {
+
+        possibleContainer.removeIf(this::isInventoryFull); // On va retirer tous les inventaires pleins
+        possibleContainer.sort(Comparator.comparingInt(this::findAmountItem).reversed()); // On va ensuite trier les inventaires pour prendre en premier ceux qui vont contenir des items
+
+        // On va parcourir ensuite les inventaires pour récupérer le premier qui est compatible avec l'itemStack
+        for (Container container : possibleContainer) {
+            Inventory inventory = container.getInventory();
+
+            if (isEmpty(inventory)) return Optional.of(container);
+
+            ItemStack firstItemStack = inventory.getContents()[0];
+            if (firstItemStack != null && firstItemStack.isSimilar(itemStack)) {
+                return Optional.of(container);
+            }
+        }
+
+        return Optional.empty();
+    }
+    
+    public boolean isInventoryFull(Container container) {
+        for (ItemStack item : container.getInventory().getContents()) {
+            if (item == null || item.getType().isAir()) {
+                return false;
+            }
+            if (item.getAmount() < item.getMaxStackSize()) {
+                return false;
+            }
+        }
+        return true;
     }
 }

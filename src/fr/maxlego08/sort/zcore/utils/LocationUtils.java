@@ -29,6 +29,7 @@ public abstract class LocationUtils extends PapiUtils {
      */
     protected Location changeStringLocationToLocationEye(String string) {
         String[] locationArray = string.split(",");
+        if (locationArray.length == 0) return null;
         World w = Bukkit.getServer().getWorld(locationArray[0]);
         float x = Float.parseFloat(locationArray[1]);
         float y = Float.parseFloat(locationArray[2]);
