@@ -2,7 +2,6 @@ package fr.maxlego08.sort;
 
 import fr.maxlego08.sort.command.commands.CommandSortChest;
 import fr.maxlego08.sort.placeholder.LocalPlaceholder;
-import fr.maxlego08.sort.save.Config;
 import fr.maxlego08.sort.save.MessageLoader;
 import fr.maxlego08.sort.zcore.ZPlugin;
 import fr.maxlego08.sort.zcore.utils.plugins.Metrics;

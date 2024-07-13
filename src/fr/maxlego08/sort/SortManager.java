@@ -41,6 +41,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Manages sorting chests and handling interactions with them.
+ */
 public class SortManager extends ListenerAdapter {
 
     private final SortPlugin plugin;
@@ -53,6 +56,11 @@ public class SortManager extends ListenerAdapter {
     private double maxDistance = 8;
     private String inventoryName = "&fChest Sorter &8(&7%amount%&8)";
 
+    /**
+     * Constructor for the SortManager.
+     *
+     * @param plugin The plugin instance.
+     */
     public SortManager(SortPlugin plugin) {
         this.plugin = plugin;
         this.itemStackKey = new NamespacedKey(plugin, "sort");
@@ -61,6 +69,9 @@ public class SortManager extends ListenerAdapter {
         this.keyChestLink = new NamespacedKey(plugin, "linked-chest");
     }
 
+    /**
+     * Loads the configuration settings for the SortManager.
+     */
     public void loadConfiguration() {
 
         YamlConfiguration configuration = (YamlConfiguration) plugin.getConfig();
@@ -78,6 +89,12 @@ public class SortManager extends ListenerAdapter {
         Config.enableDebugTime = configuration.getBoolean("debug-time", false);
     }
 
+    /**
+     * Gives the sort item stack to a player.
+     *
+     * @param sender The sender giving the item.
+     * @param player The player receiving the item.
+     */
     public void giveItemStack(CommandSender sender, Player player) {
 
         player.getInventory().addItem(this.sortItemStack.clone());
@@ -85,12 +102,24 @@ public class SortManager extends ListenerAdapter {
         message(sender, Message.COMMANDE_GIVE_SENDER, "%player%", player.getName());
     }
 
+    /**
+     * Checks if an item stack is a sort chest item stack.
+     *
+     * @param itemStack The item stack to check.
+     * @return True if it is a sort chest item stack, false otherwise.
+     */
     private boolean isSortChestItemStack(ItemStack itemStack) {
         ItemMeta itemMeta = itemStack.getItemMeta();
         PersistentDataContainer persistentDataContainer = itemMeta.getPersistentDataContainer();
         return persistentDataContainer.has(this.itemStackKey);
     }
 
+    /**
+     * Handles the block place event.
+     *
+     * @param event  The block place event.
+     * @param player The player placing the block.
+     */
     @Override
     protected void onBlockPlace(BlockPlaceEvent event, Player player) {
         ItemStack itemStack = event.getItemInHand();
@@ -111,6 +140,12 @@ public class SortManager extends ListenerAdapter {
         }
     }
 
+    /**
+     * Handles the block break event.
+     *
+     * @param event  The block break event.
+     * @param player The player breaking the block.
+     */
     @Override
     protected void onBlockBreak(BlockBreakEvent event, Player player) {
 
@@ -158,6 +193,11 @@ public class SortManager extends ListenerAdapter {
         }
     }
 
+    /**
+     * Removes the link chests.
+     *
+     * @param locations The list of locations to remove links from.
+     */
     private void removeLinkChests(List<Location> locations) {
         for (Location location : locations) {
             Block block = location.getBlock();
@@ -171,6 +211,12 @@ public class SortManager extends ListenerAdapter {
         }
     }
 
+    /**
+     * Handles the player interact event.
+     *
+     * @param event  The player interact event.
+     * @param player The player interacting.
+     */
     @Override
     protected void onInteract(PlayerInteractEvent event, Player player) {
         Block block = event.getClickedBlock();
@@ -184,6 +230,13 @@ public class SortManager extends ListenerAdapter {
         }
     }
 
+    /**
+     * Handles the right-click event.
+     *
+     * @param event  The player interact event.
+     * @param player The player interacting.
+     * @param block  The block being interacted with.
+     */
     private void handleRightClick(PlayerInteractEvent event, Player player, Block block) {
         var state = block.getState();
         if (state instanceof Container container) {
@@ -204,6 +257,13 @@ public class SortManager extends ListenerAdapter {
         }
     }
 
+    /**
+     * Handles the left-click event.
+     *
+     * @param event  The player interact event.
+     * @param player The player interacting.
+     * @param block  The block being interacted with.
+     */
     private void handleLeftClick(PlayerInteractEvent event, Player player, Block block) {
         Block sortBlock = this.linkChests.get(player);
         var state = block.getState();
@@ -247,6 +307,12 @@ public class SortManager extends ListenerAdapter {
         }
     }
 
+    /**
+     * Links a chest block to the sorter.
+     *
+     * @param sortBlock The sorter block.
+     * @param container The container to link.
+     */
     private void linkChestBlockToSorter(Block sortBlock, Container container) {
         if (container instanceof Chest chest && chest.getInventory() instanceof DoubleChestInventory doubleChestInventory) {
             DoubleChest doubleChest = doubleChestInventory.getHolder();
@@ -264,16 +330,36 @@ public class SortManager extends ListenerAdapter {
         }
     }
 
+    /**
+     * Final link chest block to the sorter.
+     *
+     * @param sortBlock The sorter block.
+     * @param container The container to link.
+     */
     private void finalLinkChestBlockToSorter(Block sortBlock, Container container) {
         PersistentDataContainer persistentDataContainer = container.getPersistentDataContainer();
         persistentDataContainer.set(this.keyChestLink, PersistentDataType.STRING, changeLocationToString(sortBlock.getLocation()));
         container.update();
     }
 
+    /**
+     * Checks if a block is already linked.
+     *
+     * @param locations The list of linked locations.
+     * @param block     The block to check.
+     * @return True if the block is already linked, false otherwise.
+     */
     private boolean isAlreadyLinked(List<Location> locations, Block block) {
         return locations.contains(block.getLocation());
     }
 
+    /**
+     * Checks if a double chest is already linked.
+     *
+     * @param chest     The chest to check.
+     * @param locations The list of linked locations.
+     * @return True if the double chest is already linked, false otherwise.
+     */
     private boolean isDoubleChestLinked(Chest chest, List<Location> locations) {
         if (chest.getInventory() instanceof DoubleChestInventory doubleChestInventory) {
             DoubleChest doubleChest = doubleChestInventory.getHolder();
@@ -289,7 +375,12 @@ public class SortManager extends ListenerAdapter {
         return false;
     }
 
-
+    /**
+     * Gets the linked chests for a block.
+     *
+     * @param block The block to get the linked chests for.
+     * @return The list of linked chests.
+     */
     private List<Location> getLinkedChests(Block block) {
         var state = block.getState();
         if (state instanceof Container container) {
@@ -306,6 +397,12 @@ public class SortManager extends ListenerAdapter {
         return new ArrayList<>();
     }
 
+    /**
+     * Saves the linked chests for a block.
+     *
+     * @param block     The block to save the linked chests for.
+     * @param locations The list of linked locations.
+     */
     private void saveLinkedChests(Block block, List<Location> locations) {
         var state = block.getState();
         if (state instanceof Container container) {
@@ -320,11 +417,23 @@ public class SortManager extends ListenerAdapter {
         }
     }
 
+    /**
+     * Handles the player quit event.
+     *
+     * @param event  The player quit event.
+     * @param player The player quitting.
+     */
     @Override
     protected void onQuit(PlayerQuitEvent event, Player player) {
         this.linkChests.remove(player);
     }
 
+    /**
+     * Checks if an inventory is empty.
+     *
+     * @param inventory The inventory to check.
+     * @return True if the inventory is empty, false otherwise.
+     */
     private boolean isEmpty(Inventory inventory) {
         int items = 0;
         for (ItemStack itemStack : inventory.getContents()) {
@@ -335,6 +444,12 @@ public class SortManager extends ListenerAdapter {
         return items == 0;
     }
 
+    /**
+     * Finds the amount of items in a container.
+     *
+     * @param container The container to check.
+     * @return The amount of items in the container.
+     */
     private int findAmountItem(Container container) {
         int items = 0;
         for (ItemStack itemStack : container.getInventory().getContents()) {
@@ -345,6 +460,12 @@ public class SortManager extends ListenerAdapter {
         return items;
     }
 
+    /**
+     * Handles the inventory close event.
+     *
+     * @param event  The inventory close event.
+     * @param player The player closing the inventory.
+     */
     @Override
     protected void onInventoryClose(InventoryCloseEvent event, Player player) {
 
@@ -358,6 +479,11 @@ public class SortManager extends ListenerAdapter {
         }
     }
 
+    /**
+     * Sorts the contents of a container.
+     *
+     * @param container The container to sort.
+     */
     private void sortContents(Container container) {
 
         Inventory inventory = container.getInventory();
@@ -381,6 +507,13 @@ public class SortManager extends ListenerAdapter {
         }
     }
 
+    /**
+     * Sorts an item stack into possible containers.
+     *
+     * @param inventory          The inventory to sort.
+     * @param possibleContainers The possible containers to sort into.
+     * @param itemStack          The item stack to sort.
+     */
     private void sortItemStack(Inventory inventory, List<Container> possibleContainers, ItemStack itemStack) {
 
         Optional<Container> optional = findContainer(new ArrayList<>(possibleContainers), itemStack);
@@ -397,6 +530,13 @@ public class SortManager extends ListenerAdapter {
         }
     }
 
+    /**
+     * Finds a container for an item stack.
+     *
+     * @param possibleContainer The possible containers to check.
+     * @param itemStack         The item stack to find a container for.
+     * @return The container for the item stack.
+     */
     private Optional<Container> findContainer(List<Container> possibleContainer, ItemStack itemStack) {
 
         possibleContainer.removeIf(this::isInventoryFull); // On va retirer tous les inventaires pleins
@@ -417,6 +557,12 @@ public class SortManager extends ListenerAdapter {
         return Optional.empty();
     }
 
+    /**
+     * Checks if an inventory is full.
+     *
+     * @param container The container to check.
+     * @return True if the inventory is full, false otherwise.
+     */
     public boolean isInventoryFull(Container container) {
         for (ItemStack item : container.getInventory().getContents()) {
             if (item == null || item.getType().isAir()) {
@@ -429,6 +575,15 @@ public class SortManager extends ListenerAdapter {
         return true;
     }
 
+    /**
+     * Handles the inventory move item event.
+     *
+     * @param event       The inventory move item event.
+     * @param destination The destination inventory.
+     * @param item        The item being moved.
+     * @param source      The source inventory.
+     * @param initiator   The inventory initiating the move.
+     */
     @Override
     protected void onInventoryMove(InventoryMoveItemEvent event, Inventory destination, ItemStack item, Inventory source, Inventory initiator) {
 
@@ -440,6 +595,12 @@ public class SortManager extends ListenerAdapter {
         }
     }
 
+    /**
+     * Updates the inventory name of a container.
+     *
+     * @param container The container to update.
+     * @param amount    The amount to set in the inventory name.
+     */
     private void updateInventoryName(Container container, int amount) {
         container.setCustomName(color(this.inventoryName.replace("%amount%", String.valueOf(amount))));
         container.update();
