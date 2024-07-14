@@ -14,13 +14,15 @@ import fr.maxlego08.sort.zcore.utils.plugins.Metrics;
  */
 public class SortPlugin extends ZPlugin {
 
-    private final SortManager sortManager = new SortManager(this);
+    private SortManager sortManager;
 
     @Override
     public void onEnable() {
 
         LocalPlaceholder placeholder = LocalPlaceholder.getInstance();
         placeholder.setPrefix("zsortchest");
+
+        this.sortManager = new SortManager(this);
 
         this.preEnable();
 

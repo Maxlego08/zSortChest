@@ -3,6 +3,7 @@ package fr.maxlego08.sort;
 import fr.maxlego08.sort.listener.ListenerAdapter;
 import fr.maxlego08.sort.save.Config;
 import fr.maxlego08.sort.zcore.enums.Message;
+import fr.maxlego08.sort.zcore.utils.ContainerVisualize;
 import fr.maxlego08.sort.zcore.utils.loader.ItemStackLoader;
 import fr.maxlego08.sort.zcore.utils.loader.Loader;
 import org.bukkit.Location;
@@ -46,6 +47,7 @@ import java.util.stream.Collectors;
  */
 public class SortManager extends ListenerAdapter {
 
+    private final ContainerVisualize containerVisualize;
     private final SortPlugin plugin;
     private final NamespacedKey itemStackKey;
     private final NamespacedKey keyBlockOwner;
@@ -67,6 +69,7 @@ public class SortManager extends ListenerAdapter {
         this.keyBlockOwner = new NamespacedKey(plugin, "owner");
         this.keyChests = new NamespacedKey(plugin, "chests");
         this.keyChestLink = new NamespacedKey(plugin, "linked-chest");
+        this.containerVisualize = new ContainerVisualize(plugin);
     }
 
     /**
@@ -251,8 +254,19 @@ public class SortManager extends ListenerAdapter {
                 }
 
                 event.setCancelled(true);
+
+                if (this.linkChests.containsKey(player)) {
+                    this.linkChests.remove(player);
+                    message(player, Message.LINK_STOP);
+                    this.containerVisualize.clear(player);
+                    return;
+                }
+
                 this.linkChests.put(player, block);
                 message(player, Message.LINK_START);
+
+                var locations = getLinkedChests(block);
+                this.containerVisualize.spawnEntity(player, locations);
             }
         }
     }
@@ -304,6 +318,7 @@ public class SortManager extends ListenerAdapter {
             }
 
             message(player, Message.LINK_SUCCESS);
+            this.containerVisualize.clear(player);
         }
     }
 
@@ -426,6 +441,7 @@ public class SortManager extends ListenerAdapter {
     @Override
     protected void onQuit(PlayerQuitEvent event, Player player) {
         this.linkChests.remove(player);
+        this.containerVisualize.clear(player);
     }
 
     /**

@@ -51,9 +51,10 @@ public enum Message {
     LINK_ERROR_ALREADY("§cThis chest is already connected, please repeat."),
     LINK_ERROR_SORTER("§cYou cannot link a sorter to another sorter."),
     LINK_START("§aYou must now left click on a chest to connect it."),
+    LINK_STOP("§aYou stop adding a chest."),
     LINK_SUCCESS("§aYou just connected a new chest."),
 
-    UNLINK_SUCCESS("§aYou just removed the box from the sorter."),
+    UNLINK_SUCCESS("§aYou just removed a container from the sorter."),
 
     ;
 
