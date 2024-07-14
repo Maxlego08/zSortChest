@@ -57,6 +57,8 @@ public class SortManager extends ListenerAdapter {
     private ItemStack sortItemStack;
     private double maxDistance = 8;
     private String inventoryName = "&fChest Sorter &8(&7%amount%&8)";
+    private String renameContainer = "&8Linked";
+    private boolean enableRenameContainer = true;
 
     /**
      * Constructor for the SortManager.
@@ -88,6 +90,8 @@ public class SortManager extends ListenerAdapter {
 
         this.maxDistance = configuration.getDouble("max-distance", 8.0);
         this.inventoryName = configuration.getString("inventory-name", "&fChest Sorter &8(&7%amount%&8)");
+        this.renameContainer = configuration.getString("rename-container", "&8Linked");
+        this.enableRenameContainer = configuration.getBoolean("enable-rename-container", false);
         Config.enableDebug = configuration.getBoolean("debug", false);
         Config.enableDebugTime = configuration.getBoolean("debug-time", false);
     }
@@ -174,6 +178,7 @@ public class SortManager extends ListenerAdapter {
 
                 var locations = getLinkedChests(block);
                 removeLinkChests(locations);
+                this.containerVisualize.clear(player);
 
                 block.getWorld().dropItemNaturally(block.getLocation(), this.sortItemStack.clone());
                 event.setDropItems(false);
@@ -207,7 +212,7 @@ public class SortManager extends ListenerAdapter {
             if (block instanceof Container container) {
                 PersistentDataContainer persistentDataContainer = container.getPersistentDataContainer();
                 if (persistentDataContainer.has(this.keyChestLink)) {
-                    persistentDataContainer.remove(this.keyChests);
+                    persistentDataContainer.remove(this.keyChestLink);
                     container.update();
                 }
             }
@@ -230,6 +235,8 @@ public class SortManager extends ListenerAdapter {
             handleRightClick(event, player, block);
         } else if (event.getAction() == Action.LEFT_CLICK_BLOCK && block != null && this.linkChests.containsKey(player)) {
             handleLeftClick(event, player, block);
+        } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK && block != null && this.linkChests.containsKey(player)) {
+            System.out.println("Oui je veux retirer un coffre !");
         }
     }
 
@@ -285,11 +292,15 @@ public class SortManager extends ListenerAdapter {
         if (state instanceof Container container && sortBlock != null && !(state instanceof Hopper)) {
 
             event.setCancelled(true);
-            this.linkChests.remove(player);
 
             PersistentDataContainer persistentDataContainer = container.getPersistentDataContainer();
             if (persistentDataContainer.has(this.keyBlockOwner)) {
                 message(player, Message.LINK_ERROR_SORTER);
+                return;
+            }
+
+            if (persistentDataContainer.has(this.keyChestLink)) {
+                message(player, Message.LINK_ERROR_ANOTHER);
                 return;
             }
 
@@ -313,12 +324,14 @@ public class SortManager extends ListenerAdapter {
 
             saveLinkedChests(sortBlock, locations);
             linkChestBlockToSorter(sortBlock, container);
+            updateContainerName(container);
             if (sortBlock.getState() instanceof Container sortContainer) {
                 updateInventoryName(sortContainer, locations.size());
             }
 
+            this.containerVisualize.spawnEntity(player, block.getLocation());
+
             message(player, Message.LINK_SUCCESS);
-            this.containerVisualize.clear(player);
         }
     }
 
@@ -564,14 +577,32 @@ public class SortManager extends ListenerAdapter {
 
             if (isEmpty(inventory)) return Optional.of(container);
 
-            ItemStack firstItemStack = inventory.getContents()[0];
-            if (firstItemStack != null && firstItemStack.isSimilar(itemStack)) {
-                return Optional.of(container);
+            Optional<ItemStack> optional = findFirstValidItemStack(inventory);
+            if (optional.isPresent()) {
+                ItemStack firstItemStack = optional.get();
+                if (firstItemStack.isSimilar(itemStack)) {
+                    return Optional.of(container);
+                }
             }
         }
 
         return Optional.empty();
     }
+
+    /**
+     * Finds the first valid ItemStack in the given inventory.
+     * A valid ItemStack is one that is not null and does not have an air type.
+     *
+     * @param inventory the inventory to search through
+     * @return an Optional containing the first valid ItemStack if found, otherwise an empty Optional
+     */
+    private Optional<ItemStack> findFirstValidItemStack(Inventory inventory) {
+        return Arrays.stream(inventory.getContents())
+                .filter(Objects::nonNull)
+                .filter(itemStack -> !itemStack.getType().isAir())
+                .findFirst();
+    }
+
 
     /**
      * Checks if an inventory is full.
@@ -621,4 +652,17 @@ public class SortManager extends ListenerAdapter {
         container.setCustomName(color(this.inventoryName.replace("%amount%", String.valueOf(amount))));
         container.update();
     }
+
+    /**
+     * Updates the custom name of the container if renaming is enabled.
+     *
+     * @param container the container to update
+     */
+    private void updateContainerName(Container container) {
+        if (this.enableRenameContainer) {
+            container.setCustomName(color(this.renameContainer));
+            container.update();
+        }
+    }
+
 }
