@@ -12,6 +12,7 @@ import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -68,5 +69,10 @@ public class AdapterListener extends ZUtils implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onMove(InventoryMoveItemEvent event) {
         this.plugin.getListenerAdapters().forEach(adapter -> adapter.onInventoryMove(event, event.getDestination(), event.getItem(), event.getSource(), event.getInitiator()));
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onInteract(PlayerInteractAtEntityEvent event) {
+        this.plugin.getListenerAdapters().forEach(adapter -> adapter.onInteractEntity(event, event.getPlayer(), event.getHand(), event.getRightClicked()));
     }
 }

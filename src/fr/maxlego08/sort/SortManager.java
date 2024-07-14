@@ -15,17 +15,22 @@ import org.bukkit.block.DoubleChest;
 import org.bukkit.block.Hopper;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Shulker;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.DoubleChestInventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -185,20 +190,66 @@ public class SortManager extends ListenerAdapter {
 
             } else if (persistentDataContainer.has(this.keyChestLink)) {
 
-                Location location = changeStringLocationToLocation(persistentDataContainer.get(this.keyChestLink, PersistentDataType.STRING));
-                Block sortBlock = location.getBlock();
+                removeContainer(block, player, persistentDataContainer);
+            }
+        }
+    }
 
-                List<Location> locations = getLinkedChests(sortBlock);
-                locations.removeIf(currentLocation -> same(currentLocation, block.getLocation()));
+    private void removeContainer(Block block, Player player, PersistentDataContainer persistentDataContainer) {
+        var state = block.getState();
+        if (state instanceof Chest chest) {
 
-                saveLinkedChests(sortBlock, locations);
-                if (sortBlock.getState() instanceof Container sortContainer) {
-                    updateInventoryName(sortContainer, locations.size());
+            InventoryHolder holder = chest.getInventory().getHolder();
+            if (holder instanceof DoubleChest doubleChest) {
+
+                if (doubleChest.getLeftSide() instanceof Chest leftChest) {
+                    removeChestFromSorter(player, leftChest.getPersistentDataContainer(), leftChest.getBlock());
+                }
+
+                if (doubleChest.getRightSide() instanceof Chest rightChest) {
+                    removeChestFromSorter(player, rightChest.getPersistentDataContainer(), rightChest.getBlock());
                 }
 
                 message(player, Message.UNLINK_SUCCESS);
+            } else {
+
+                removeChestFromSorter(player, persistentDataContainer, block);
+                message(player, Message.UNLINK_SUCCESS);
             }
+
+        } else {
+
+            removeChestFromSorter(player, persistentDataContainer, block);
+            message(player, Message.UNLINK_SUCCESS);
         }
+    }
+
+    /**
+     * Removes a chest from the sorter and updates the linked chests.
+     *
+     * @param player                  the player removing the chest
+     * @param persistentDataContainer the persistent data container of the chest
+     * @param block                   the block representing the chest being removed
+     */
+    private void removeChestFromSorter(Player player, PersistentDataContainer persistentDataContainer, Block block) {
+        Location location = changeStringLocationToLocation(persistentDataContainer.get(this.keyChestLink, PersistentDataType.STRING));
+        Block sortBlock = location.getBlock();
+
+        List<Location> locations = getLinkedChests(sortBlock);
+        locations.removeIf(currentLocation -> same(currentLocation, block.getLocation()));
+
+        saveLinkedChests(sortBlock, locations);
+        if (sortBlock.getState() instanceof Container sortContainer) {
+            updateInventoryName(sortContainer, locations.size());
+        }
+
+        if (block.getState() instanceof Container container) {
+            container.getPersistentDataContainer().remove(this.keyChestLink);
+            container.setCustomName(null);
+            container.update();
+        }
+
+        this.containerVisualize.remove(player, block.getLocation());
     }
 
     /**
@@ -213,6 +264,7 @@ public class SortManager extends ListenerAdapter {
                 PersistentDataContainer persistentDataContainer = container.getPersistentDataContainer();
                 if (persistentDataContainer.has(this.keyChestLink)) {
                     persistentDataContainer.remove(this.keyChestLink);
+                    container.setCustomName(null);
                     container.update();
                 }
             }
@@ -236,7 +288,7 @@ public class SortManager extends ListenerAdapter {
         } else if (event.getAction() == Action.LEFT_CLICK_BLOCK && block != null && this.linkChests.containsKey(player)) {
             handleLeftClick(event, player, block);
         } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK && block != null && this.linkChests.containsKey(player)) {
-            System.out.println("Oui je veux retirer un coffre !");
+            handleRightClickRemoveChest(event, player, block);
         }
     }
 
@@ -277,6 +329,37 @@ public class SortManager extends ListenerAdapter {
                 this.containerVisualize.clear(player);
                 this.containerVisualize.spawnEntity(player, locations);
             }
+        }
+    }
+
+    @Override
+    protected void onInteractEntity(PlayerInteractAtEntityEvent event, Player player, EquipmentSlot hand, Entity entity) {
+        if (entity instanceof Shulker shulker && shulker.hasMetadata("zsortchest")) {
+
+            var block = entity.getLocation().getBlock();
+            handleRightClickRemoveChest(event, player, block);
+        }
+    }
+
+    /**
+     * Handles the right-click event.
+     *
+     * @param event  The player interact event.
+     * @param player The player interacting.
+     * @param block  The block being interacted with.
+     */
+    private void handleRightClickRemoveChest(Cancellable event, Player player, Block block) {
+
+        var state = block.getState();
+
+        if (state instanceof Container container) {
+
+            PersistentDataContainer persistentDataContainer = container.getPersistentDataContainer();
+
+            if (!persistentDataContainer.has(this.keyChestLink)) return;
+
+            event.setCancelled(true);
+            removeContainer(block, player, persistentDataContainer);
         }
     }
 
@@ -346,6 +429,7 @@ public class SortManager extends ListenerAdapter {
      * @param container The container to link.
      */
     private void linkChestBlockToSorter(Block sortBlock, Container container) {
+
         if (container instanceof Chest chest && chest.getInventory() instanceof DoubleChestInventory doubleChestInventory) {
             DoubleChest doubleChest = doubleChestInventory.getHolder();
 
