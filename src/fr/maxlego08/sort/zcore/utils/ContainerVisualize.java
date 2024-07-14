@@ -37,8 +37,6 @@ public class ContainerVisualize {
 
     public void spawnEntity(Player player, List<Location> locations) {
 
-        this.clear(player);
-
         for (Location location : new ArrayList<>(locations)) {
             var block = location.getBlock();
             var state = block.getState();
@@ -73,7 +71,7 @@ public class ContainerVisualize {
         shulker.setInvisible(true);
         shulker.setCollidable(false);
 
-        Bukkit.getScheduler().runTaskLater(this.plugin, shulker::remove, 20 * 60); // Remove in 60 seconds
+        Bukkit.getScheduler().runTaskLater(this.plugin, shulker::remove, 20 * 30); // Remove in 30 seconds
 
         this.addEntity(player, shulker);
     }

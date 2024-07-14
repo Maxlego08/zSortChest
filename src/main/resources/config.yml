@@ -14,3 +14,10 @@ max-distance: 8
 
 # Inventory name, you can view the number of container connect with the %amount%
 inventory-name: "&fChest Sorter &8(&7%amount%&8)"
+
+# Rename the containers that will be linked
+enable-rename-container: true
+
+# New container name
+rename-container: "&8Linked"
+

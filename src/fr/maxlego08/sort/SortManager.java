@@ -273,6 +273,8 @@ public class SortManager extends ListenerAdapter {
                 message(player, Message.LINK_START);
 
                 var locations = getLinkedChests(block);
+
+                this.containerVisualize.clear(player);
                 this.containerVisualize.spawnEntity(player, locations);
             }
         }
@@ -329,7 +331,9 @@ public class SortManager extends ListenerAdapter {
                 updateInventoryName(sortContainer, locations.size());
             }
 
-            this.containerVisualize.spawnEntity(player, block.getLocation());
+            List<Location> list = new ArrayList<>();
+            list.add(block.getLocation());
+            this.containerVisualize.spawnEntity(player, list);
 
             message(player, Message.LINK_SUCCESS);
         }
@@ -597,10 +601,7 @@ public class SortManager extends ListenerAdapter {
      * @return an Optional containing the first valid ItemStack if found, otherwise an empty Optional
      */
     private Optional<ItemStack> findFirstValidItemStack(Inventory inventory) {
-        return Arrays.stream(inventory.getContents())
-                .filter(Objects::nonNull)
-                .filter(itemStack -> !itemStack.getType().isAir())
-                .findFirst();
+        return Arrays.stream(inventory.getContents()).filter(Objects::nonNull).filter(itemStack -> !itemStack.getType().isAir()).findFirst();
     }
 
 

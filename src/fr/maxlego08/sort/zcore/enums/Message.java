@@ -49,6 +49,7 @@ public enum Message {
     LINK_ERROR_OWNER("§cThe sorter must be empty before it can be broken."),
     LINK_ERROR_DISTANCE("§cThe chest is too far you can’t connect it."),
     LINK_ERROR_ALREADY("§cThis chest is already connected, please repeat."),
+    LINK_ERROR_ANOTHER("§cThis chest is already connected to another sorter."),
     LINK_ERROR_SORTER("§cYou cannot link a sorter to another sorter."),
     LINK_START("§aYou must now left click on a chest to connect it."),
     LINK_STOP("§aYou stop adding a chest."),
